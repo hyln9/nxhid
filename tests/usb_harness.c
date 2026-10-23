@@ -33,7 +33,11 @@ void armDCacheFlush(void *buffer, size_t size) {
     assert((uintptr_t)buffer % 0x1000 == 0 && size == 1);
     cache_flushes++;
 }
-Result eventClear(Event *event) { event->signaled = false; return 0; }
+Result eventClear(Event *event) {
+    bool was_signaled = event->signaled;
+    event->signaled = false;
+    return was_signaled ? 0 : KERNELRESULT(InvalidState); // Like svcResetSignal.
+}
 Result eventWait(Event *event, u64 timeout) {
     if (key_owned) assert(!memcmp(key_buffer, input, sizeof(input)));
     if (event->error) return event->error;

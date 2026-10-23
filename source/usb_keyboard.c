@@ -50,6 +50,12 @@ static Result remember_error(Result rc) {
     return rc;
 }
 
+// Resetting an event that is not signaled fails with InvalidState; that is not a fault.
+static Result clear_event(Event *event) {
+    Result rc = eventClear(event);
+    return rc == KERNELRESULT(InvalidState) ? 0 : rc;
+}
+
 void usb_keyboard_exit(void) {
     if (initialized) usbDsExit(); // Cancels transfers before buffers can be reused.
     initialized = was_ready = false;
@@ -142,7 +148,7 @@ uint8_t usb_keyboard_leds(void) { return leds; }
 // Each control stage is bounded; the public entry points latch failures until exit.
 static Result control_stage(bool in, size_t size) {
     Event *event = in ? &interface->CtrlInCompletionEvent : &interface->CtrlOutCompletionEvent;
-    Result rc = eventClear(event);
+    Result rc = clear_event(event);
     if (R_FAILED(rc)) return rc;
     u32 id, transferred;
     rc = in ? usbDsInterface_CtrlInPostBufferAsync(interface, control_buffer, size, &id)
@@ -150,7 +156,7 @@ static Result control_stage(bool in, size_t size) {
     if (R_FAILED(rc)) return rc;
     rc = eventWait(event, CONTROL_TIMEOUT_NS);
     if (R_FAILED(rc)) return rc;
-    rc = eventClear(event);
+    rc = clear_event(event);
     if (R_FAILED(rc)) return rc;
     UsbDsReportData reports;
     rc = in ? usbDsInterface_GetCtrlInReportData(interface, &reports)
@@ -174,7 +180,7 @@ static Result service_setup(void) {
     Result rc = eventWait(&interface->SetupEvent, 0);
     if (rc == KERNELRESULT(TimedOut)) return 0;
     if (R_FAILED(rc)) return rc;
-    rc = eventClear(&interface->SetupEvent);
+    rc = clear_event(&interface->SetupEvent);
     if (R_FAILED(rc)) return rc;
     struct usb_control_setup s;
     rc = usbDsInterface_GetSetupPacket(interface, &s, sizeof(s));
@@ -241,7 +247,7 @@ static Result read_state(UsbState *state) {
 static Result start_input(const u8 report[8], bool release) {
     // No writes to this DMA buffer until its matching completion has been consumed.
     if (input_pending) return io_error();
-    Result rc = eventClear(&endpoint->CompletionEvent);
+    Result rc = clear_event(&endpoint->CompletionEvent);
     if (R_FAILED(rc)) return rc;
     memcpy(input_buffer, report, 8);
     rc = usbDsEndpoint_PostBufferAsync(endpoint, input_buffer, 8, &input_id);
@@ -256,7 +262,7 @@ static Result poll_input(u64 timeout) {
     Result rc = eventWait(&endpoint->CompletionEvent, timeout);
     if (rc == KERNELRESULT(TimedOut)) return 0;
     if (R_FAILED(rc)) return rc;
-    rc = eventClear(&endpoint->CompletionEvent);
+    rc = clear_event(&endpoint->CompletionEvent);
     if (R_FAILED(rc)) return rc;
     UsbDsReportData reports;
     rc = usbDsEndpoint_GetReportData(endpoint, &reports);

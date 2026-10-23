@@ -14,7 +14,7 @@ typedef u32 Result;
 #define MAKERESULT(module, error) ((Result)((module) * 100 + (error)))
 #define KERNELRESULT(error) MAKERESULT(1, error)
 enum { Module_Libnx = 2, LibnxError_IoError = 1, LibnxError_IncompatSysVer,
-       LibnxError_NotInitialized, LibnxError_AlreadyInitialized, LibnxError_NotFound, TimedOut = 10 };
+       LibnxError_NotInitialized, LibnxError_AlreadyInitialized, LibnxError_NotFound, TimedOut = 10, InvalidState = 11 };
 enum { USB_DT_DEVICE_SIZE = 18, USB_DT_INTERFACE_SIZE = 9, USB_DT_ENDPOINT_SIZE = 7 };
 enum { USB_DT_DEVICE = 1, USB_DT_INTERFACE = 4, USB_DT_ENDPOINT = 5,
        USB_DT_BOS = 15, USB_DT_DEVICE_CAPABILITY = 16, USB_DT_HID = 33,
