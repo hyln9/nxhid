@@ -14,7 +14,7 @@ typedef u32 Result;
 #define MAKERESULT(module, error) ((Result)((module) * 100 + (error)))
 #define KERNELRESULT(error) MAKERESULT(1, error)
 enum { Module_Libnx = 2, LibnxError_IoError = 1, LibnxError_IncompatSysVer,
-       LibnxError_NotInitialized, TimedOut = 10 };
+       LibnxError_NotInitialized, LibnxError_AlreadyInitialized, LibnxError_NotFound, TimedOut = 10 };
 enum { USB_DT_DEVICE_SIZE = 18, USB_DT_INTERFACE_SIZE = 9, USB_DT_ENDPOINT_SIZE = 7 };
 enum { USB_DT_DEVICE = 1, USB_DT_INTERFACE = 4, USB_DT_ENDPOINT = 5,
        USB_DT_BOS = 15, USB_DT_DEVICE_CAPABILITY = 16, USB_DT_HID = 33,
@@ -23,7 +23,8 @@ enum { USB_CLASS_HID = 3, USB_TRANSFER_TYPE_INTERRUPT = 3 };
 enum { USB_REQUEST_GET_STATUS = 0, USB_REQUEST_GET_DESCRIPTOR = 6,
        USB_REQUEST_GET_INTERFACE = 10, USB_REQUEST_SET_INTERFACE = 11 };
 typedef enum { UsbDeviceSpeed_Full = 2, UsbDeviceSpeed_High, UsbDeviceSpeed_Super } UsbDeviceSpeed;
-typedef enum { UsbState_Detached, UsbState_Configured = 5 } UsbState;
+typedef enum { UsbState_Detached, UsbState_Attached, UsbState_Powered, UsbState_Default,
+               UsbState_Address, UsbState_Configured, UsbState_Suspended } UsbState;
 typedef struct { bool signaled; Result error; } Event;
 typedef struct {
     u8 interface_index;
