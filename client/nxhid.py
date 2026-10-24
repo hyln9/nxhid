@@ -19,9 +19,9 @@ SEQUENCE_HOLD = 0.05
 MODIFIERS = {
     "ctrl": 1, "control": 1, "ctrl_l": 1, "control_l": 1,
     "shift": 2, "shift_l": 2, "alt": 4, "alt_l": 4,
-    "gui": 8, "win": 8, "cmd": 8, "meta_l": 8, "super_l": 8,
+    "gui": 8, "win": 8, "win_l": 8, "cmd": 8, "meta_l": 8, "super_l": 8,
     "ctrl_r": 16, "control_r": 16, "shift_r": 32, "alt_r": 64,
-    "meta_r": 128, "super_r": 128,
+    "meta_r": 128, "super_r": 128, "win_r": 128,
 }
 KEYS = {
     "enter": 40, "return": 40, "esc": 41, "escape": 41, "backspace": 42,
@@ -34,11 +34,20 @@ KEYS = {
     "end": 77, "pagedown": 78, "next": 78, "right": 79,
     "left": 80, "down": 81, "up": 82, "numlock": 83, "num_lock": 83,
     "kp_divide": 84, "kp_multiply": 85, "kp_subtract": 86, "kp_add": 87,
-    "kp_enter": 88, "kp_0": 98, "kp_decimal": 99, "menu": 101,
+    "kp_enter": 88, "kp_0": 98, "kp_decimal": 99, "menu": 101, "app": 101,
+    "kp_equal": 103, "iso_left_tab": 43,
 }
 KEYS.update({f"f{i}": 57+i for i in range(1, 13)})
 KEYS.update({f"f{i}": 104+i-13 for i in range(13, 25)})
 KEYS.update({f"kp_{i}": 88+i for i in range(1, 10)})
+# Tk changes keypad keysyms with local Num Lock. Forward the same physical usage
+# so the target's lock state decides whether it acts as a digit or navigation key.
+KEYS.update({
+    "kp_insert": 98, "kp_end": 89, "kp_down": 90, "kp_next": 91,
+    "kp_left": 92, "kp_begin": 93, "kp_right": 94, "kp_home": 95,
+    "kp_up": 96, "kp_prior": 97, "kp_delete": 99,
+    "kp_page_up": 97, "kp_page_down": 91,
+})
 PUNCTUATION = {
     " ": (0, 44), "-": (0, 45), "=": (0, 46), "[": (0, 47), "]": (0, 48),
     "\\": (0, 49), ";": (0, 51), "'": (0, 52), "`": (0, 53),

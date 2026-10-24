@@ -1,5 +1,5 @@
 #pragma once
-// Minimal libnx boundary for running the real USB backend in host tests.
+// Minimal libnx boundary for running the real USB backend and app in host tests.
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -83,3 +83,28 @@ Result usbDsInterface_StallCtrl(UsbDsInterface *intf);
 Result usbDsInterface_GetSetupPacket(UsbDsInterface *intf, void *data, size_t size);
 Result usbDsEndpoint_PostBufferAsync(UsbDsEndpoint *ep, void *data, size_t size, u32 *id);
 Result usbDsEndpoint_GetReportData(UsbDsEndpoint *ep, UsbDsReportData *reports);
+
+typedef struct PrintConsole PrintConsole;
+typedef struct { unsigned unused; } PadState;
+enum { AppletType_Application = 0, AppletType_LibraryApplet = 2 };
+enum { AppletFocusState_InFocus = 1, AppletFocusState_Background = 3 };
+enum { AppletFocusHandlingMode_NoSuspend = 1, NifmServiceType_User = 0 };
+enum { HidNpadStyleSet_NpadStandard = 1, HidNpadButton_B = 2, HidNpadButton_Plus = 1024 };
+PrintConsole *consoleInit(PrintConsole *console);
+void consoleUpdate(PrintConsole *console);
+void consoleExit(PrintConsole *console);
+void padConfigureInput(unsigned players, unsigned styles);
+void padInitializeDefault(PadState *pad);
+void padUpdate(PadState *pad);
+u64 padGetButtonsDown(const PadState *pad);
+int appletGetAppletType(void);
+int appletGetFocusState(void);
+bool appletMainLoop(void);
+Result appletSetFocusHandlingMode(int mode);
+Result appletSetAutoSleepDisabled(bool disabled);
+Result socketInitializeDefault(void);
+void socketExit(void);
+Result nifmInitialize(int type);
+void nifmExit(void);
+Result nifmGetCurrentIpAddress(u32 *address);
+Result svcSleepThread(int64_t nanoseconds);

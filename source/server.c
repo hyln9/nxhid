@@ -73,23 +73,7 @@ static void command(Server *s, uint64_t now) {
     s->last_activity = now;
 }
 
-void server_tick(Server *s, uint64_t now, bool enabled) {
-    struct sockaddr_in addr;
-    socklen_t size = sizeof(addr);
-    int incoming = accept(s->listener, (struct sockaddr *)&addr, &size);
-    if (incoming >= 0) {
-        if (!enabled || s->client >= 0 || !nonblock(incoming)) close(incoming);
-        else {
-            int yes = 1;
-            setsockopt(incoming, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
-#ifdef SO_NOSIGPIPE
-            setsockopt(incoming, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
-#endif
-            s->client = incoming;
-            s->last_activity = now;
-            inet_ntop(AF_INET, &addr.sin_addr, s->peer, sizeof(s->peer));
-        }
-    }
+static void tick_client(Server *s, uint64_t now, bool enabled) {
     if (s->client < 0) return;
     if (!enabled || now - s->last_activity >= NXHID_TIMEOUT_MS) { server_drop(s); return; }
     if (s->output_sent < s->output_size) {
@@ -112,5 +96,27 @@ void server_tick(Server *s, uint64_t now, bool enabled) {
         if (ch == '\n') { command(s, now); return; }
         if (ch < 32 || ch > 126 || s->used == sizeof(s->line) - 1) { server_drop(s); return; }
         s->line[s->used++] = ch;
+    }
+}
+
+void server_tick(Server *s, uint64_t now, bool enabled) {
+    // Consume a previous sender's EOF and release its keys before deciding whether
+    // a new connection is a second sender. Both can arrive between ticks.
+    tick_client(s, now, enabled);
+    struct sockaddr_in addr;
+    socklen_t size = sizeof(addr);
+    int incoming = accept(s->listener, (struct sockaddr *)&addr, &size);
+    if (incoming >= 0) {
+        if (!enabled || s->client >= 0 || !nonblock(incoming)) close(incoming);
+        else {
+            int yes = 1;
+            setsockopt(incoming, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof(yes));
+#ifdef SO_NOSIGPIPE
+            setsockopt(incoming, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+#endif
+            s->client = incoming;
+            s->last_activity = now;
+            inet_ntop(AF_INET, &addr.sin_addr, s->peer, sizeof(s->peer));
+        }
     }
 }

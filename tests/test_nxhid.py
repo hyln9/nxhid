@@ -1,6 +1,8 @@
 import argparse
 import importlib.util
+import os
 from pathlib import Path
+import signal
 import socket
 import subprocess
 import sys
@@ -40,6 +42,23 @@ class KeyMappingTests(unittest.TestCase):
         self.assertEqual(nxhid.live_key("question", ""), (0, 56))
         self.assertEqual(nxhid.live_key("Shift_R", ""), (32, 0))
         self.assertEqual(nxhid.live_key("Caps_Lock", ""), (0, 57))
+        self.assertEqual(nxhid.live_key("Win_L", ""), (8, 0))
+        self.assertEqual(nxhid.live_key("Win_R", ""), (128, 0))
+        self.assertEqual(nxhid.live_key("App", ""), (0, 101))
+        self.assertEqual(nxhid.live_key("KP_Equal", "="), (0, 103))
+        self.assertEqual(nxhid.live_key("ISO_Left_Tab", ""), (0, 43))
+
+    def test_live_keypad_mapping_does_not_depend_on_local_num_lock(self):
+        for unlocked, locked in (
+            ("KP_Insert", "KP_0"), ("KP_End", "KP_1"), ("KP_Down", "KP_2"),
+            ("KP_Next", "KP_3"), ("KP_Left", "KP_4"), ("KP_Begin", "KP_5"),
+            ("KP_Right", "KP_6"), ("KP_Home", "KP_7"), ("KP_Up", "KP_8"),
+            ("KP_Prior", "KP_9"), ("KP_Delete", "KP_Decimal"),
+            ("KP_Page_Up", "KP_9"), ("KP_Page_Down", "KP_3"),
+        ):
+            with self.subTest(keysym=unlocked):
+                self.assertEqual(nxhid.live_key(unlocked, ""), nxhid.live_key(locked, ""))
+        self.assertEqual(nxhid.live_key("Home", ""), (0, 74))
 
     def test_transport_timeout_closes_the_session(self):
         client = nxhid.Client("unused")
@@ -504,6 +523,24 @@ class ServerIntegrationTests(unittest.TestCase):
         self.assertEqual(second.recv(1), b"")
         first.sendall(b"PING\n")
         self.assertEqual(self.line(first), b"OK\n")
+
+    def test_reconnect_after_closed_sender_is_accepted(self):
+        first = self.connect()
+        first.sendall(b"REPORT 0100040000000000\n")
+        self.assertEqual(self.line(first), b"OK\n")
+        # Queue the previous sender's EOF and the new connection before the next
+        # server tick, without relying on the scheduler to reproduce the race.
+        self.process.send_signal(signal.SIGSTOP)
+        try:
+            _, status = os.waitpid(self.process.pid, os.WUNTRACED)
+            self.assertTrue(os.WIFSTOPPED(status))
+            first.close()
+            second = self.connect(ping=False)
+            second.sendall(b"PING\n")
+        finally:
+            self.process.send_signal(signal.SIGCONT)
+        self.assertEqual(self.line(second), b"OK\n")
+        self.assertEqual(self.reports(2), ["0100040000000000", "0000000000000000"])
 
     def test_watchdog_releases_held_key(self):
         sock = self.connect()

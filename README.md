@@ -90,7 +90,7 @@ make test
 make package
 ```
 
-The bundle is `dist/nxhid-0.1.0.zip`. Host tests require a C compiler and local TCP
+The bundle is `dist/nxhid-0.2.0.zip`. Host tests require a C compiler and local TCP
 socket access, but do not need the Switch SDK. Use the bundled `.nro` and Python
 sender together.
 
